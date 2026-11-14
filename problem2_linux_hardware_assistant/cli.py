@@ -30,6 +30,18 @@ def run_cli():
                 console.print("\n[bold yellow]Session finished. Have a great day![/bold yellow]\n")
                 break
 
+            # Map quick example number shortcuts (1, 2, 3, 4) to actual queries
+            examples_map = {
+                "1": "Can I add more RAM, and how much?",
+                "2": "Is my SSD NVMe or SATA?",
+                "3": "and what about the GPU?",
+                "4": "What are my CPU specs and core count?"
+            }
+            if user_input in examples_map:
+                actual_query = examples_map[user_input]
+                console.print(f"[dim]Selected: '{actual_query}'[/dim]")
+                user_input = actual_query
+
             response = assistant.ask(user_input)
 
             # Display safe tool execution telemetry

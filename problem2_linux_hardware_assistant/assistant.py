@@ -39,8 +39,8 @@ RULES:
         if any(term in q for term in ["ram", "memory", "slots", "upgrade", "capacity"]):
             tools_to_call.append(("get_dmi_memory", {"include_empty_slots": True}))
 
-        # Storage / SSD / NVMe / Disks
-        if any(term in q for term in ["ssd", "nvme", "disk", "storage", "drive", "hdd", "space"]):
+        # Storage / SSD / NVMe / Disks / Space queries
+        if any(term in q for term in ["ssd", "nvme", "disk", "storage", "drive", "hdd", "space", "size", "capacity"]):
             tools_to_call.append(("get_block_devices", {}))
 
         # CPU / Processor queries
@@ -89,7 +89,7 @@ RULES:
         """
         q = query.lower()
 
-        # Handle RAM questions (e.g. "Can I add more RAM, and how much?")
+        # Handle RAM questions (e.g. "Can I add more RAM, and how much?" or "ram")
         if "get_dmi_memory" in tool_data:
             mem = tool_data["get_dmi_memory"]
             if "error" in mem:
@@ -101,18 +101,17 @@ RULES:
             installed = mem.get("installed_modules", [])
             installed_sizes = [m.get("capacity") for m in installed]
 
-            # Primary example from assignment
-            if any(term in q for term in ["add", "upgrade", "more ram", "how much ram"]):
-                if installed:
-                    curr_size = installed[0].get("capacity", "16 GB")
-                    return (
-                        f"You have {curr_size} installed in {occupied} of {slots} slots. "
-                        f"The motherboard supports a maximum of {max_cap}. "
-                        f"You have {slots - occupied} free slot available to expand your RAM."
-                    )
-                return f"Total slots: {slots}, Occupied: {occupied}, Maximum Capacity: {max_cap}."
+            # Primary example from assignment and general RAM queries
+            if installed:
+                curr_size = installed[0].get("capacity", "16 GB")
+                return (
+                    f"You have {curr_size} installed in {occupied} of {slots} slots. "
+                    f"The motherboard supports a maximum of {max_cap}. "
+                    f"You have {slots - occupied} free slot available to expand your RAM."
+                )
+            return f"Total slots: {slots}, Occupied: {occupied}, Maximum Capacity: {max_cap}."
 
-        # Handle Storage / NVMe questions (e.g. "Is my SSD NVMe?")
+        # Handle Storage / NVMe questions (e.g. "Is my SSD NVMe?" or "How much space?")
         if "get_block_devices" in tool_data:
             blk = tool_data["get_block_devices"]
             disks = blk.get("disks", [])
@@ -120,11 +119,15 @@ RULES:
                 return "I cannot determine disk specifications from current system data."
             
             nvme_disks = [d for d in disks if "nvme" in d.get("drive_technology", "").lower()]
-            if any(term in q for term in ["nvme", "ssd"]):
+            if any(term in q for term in ["nvme"]):
                 if nvme_disks:
                     details = ", ".join([f"{d['name']} ({d['model']} - {d['size']})" for d in nvme_disks])
                     return f"Yes, your primary storage drive is an NVMe SSD: {details}."
                 return "No, none of the detected storage devices use the NVMe protocol."
+
+            # General storage capacity/space response
+            disk_summaries = [f"{d['name']} ({d.get('drive_technology', 'Disk')}, Total Capacity: {d['size']})" for d in disks]
+            return f"Storage configuration detected: {', '.join(disk_summaries)}."
 
         # Handle CPU questions
         if "get_cpu_info" in tool_data:
